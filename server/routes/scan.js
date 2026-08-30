@@ -32,14 +32,20 @@ router.post('/upload', upload.single('image'), (req, res) => {
   const imagePath = path.join(__dirname, '..', req.file.path);
   const scriptPath = path.join(__dirname, '..', 'python_scripts', 'decode.py');
 
-  // Try to use venv python if available, otherwise global python
+  // Try to use venv python if available, otherwise python3 (Linux/Mac) or python (Windows)
   const venvPythonPath = path.join(__dirname, '..', '..', 'venv', 'Scripts', 'python.exe');
-  const pythonExecutable = fs.existsSync(venvPythonPath) ? venvPythonPath : 'python';
+  const defaultPython = process.platform === 'win32' ? 'python' : 'python3';
+  const pythonExecutable = fs.existsSync(venvPythonPath) ? venvPythonPath : defaultPython;
 
   const pythonProcess = spawn(pythonExecutable, [scriptPath, imagePath]);
 
   let result = '';
   let errorOutput = '';
+
+  pythonProcess.on('error', (err) => {
+    console.error('Failed to start python process:', err);
+    errorOutput = err.message;
+  });
 
   pythonProcess.stdout.on('data', (data) => {
     result += data.toString();
