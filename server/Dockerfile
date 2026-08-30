@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y python3 python3-pip libzbar0
 WORKDIR /app
 
 # Install Python dependencies (headless OpenCV and pyzbar)
-RUN pip3 install pyzbar opencv-python-headless
+RUN pip3 install pyzbar opencv-python-headless --break-system-packages
 
 # Copy package files and install Node dependencies
 COPY package*.json ./
