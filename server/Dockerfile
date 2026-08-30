@@ -1,5 +1,5 @@
 # Use an official Node.js image
-FROM node:18-bullseye
+FROM node:20-bookworm
 
 # Install Python, pip, and zbar tools (required for pyzbar on Linux)
 RUN apt-get update && apt-get install -y python3 python3-pip libzbar0
