@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smartcart-api
+    env: docker
+    rootDir: server
+    plan: free
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
