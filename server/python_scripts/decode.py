@@ -1,6 +1,5 @@
 import sys
 import cv2
-import zxingcpp
 
 def main():
     if len(sys.argv) < 2:
@@ -15,15 +14,29 @@ def main():
             print("NOT_FOUND")
             sys.exit(0)
             
-        results = zxingcpp.read_barcodes(img)
-        
-        if len(results) == 0:
+        barcode_text = None
+
+        # Try zxingcpp first (used locally on Windows)
+        try:
+            import zxingcpp
+            results = zxingcpp.read_barcodes(img)
+            if len(results) > 0:
+                barcode_text = results[0].text
+        except ImportError:
+            pass
+            
+        # Fallback to pyzbar (used on Docker/Linux)
+        if barcode_text is None:
+            from pyzbar.pyzbar import decode
+            results = decode(img)
+            if len(results) > 0:
+                barcode_text = results[0].data.decode('utf-8')
+                
+        if not barcode_text:
             print("NOT_FOUND")
             sys.exit(0)
             
-        # Print the first detected barcode
-        barcode = results[0].text
-        print(barcode)
+        print(barcode_text)
         
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)

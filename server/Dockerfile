@@ -1,14 +1,14 @@
 # Use an official Node.js image
 FROM node:18-bullseye
 
-# Install Python, pip, and build tools required for zxing-cpp
-RUN apt-get update && apt-get install -y python3 python3-pip cmake g++ make
+# Install Python, pip, and zbar tools (required for pyzbar on Linux)
+RUN apt-get update && apt-get install -y python3 python3-pip libzbar0
 
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies (headless OpenCV for server environments)
-RUN pip3 install zxing-cpp opencv-python-headless
+# Install Python dependencies (headless OpenCV and pyzbar)
+RUN pip3 install pyzbar opencv-python-headless
 
 # Copy package files and install Node dependencies
 COPY package*.json ./
