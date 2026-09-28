@@ -1,63 +1,144 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import ProductList from './pages/ProductList';
-import AddProduct from './pages/AddProduct';
-import BulkUpload from './pages/BulkUpload';
-import AdminLayout from './components/AdminLayout';
 import { ShoppingCart } from 'lucide-react';
-import { useCart } from './context/CartContext';
+import { useCartStore } from './store/cartStore';
+
+// Auth Pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
+// Dashboards & Customer Pages
+import CustomerLayout from './pages/customer/CustomerLayout';
+import CustomerDashboard from './pages/dashboards/CustomerDashboard';
+import ShoppingLists from './pages/customer/ShoppingLists';
+import Search from './pages/customer/Search';
+import Checkout from './pages/customer/Checkout';
+import Receipt from './pages/customer/Receipt';
+
+// Super Admin Imports
+import SuperAdminLayout from './pages/superadmin/SuperAdminLayout';
+import SuperAdminDashboard from './pages/superadmin/Dashboard';
+import MallsList from './pages/superadmin/MallsList';
+import SmartCarts from './pages/superadmin/SmartCarts';
+
+// Mall Admin Imports
+import MallAdminLayout from './pages/malladmin/MallAdminLayout';
+import MallAdminDashboard from './pages/dashboards/MallAdminDashboard'; // Using the one we built in Dashboards earlier
+import ProductsList from './pages/malladmin/ProductsList';
+import AddProduct from './pages/malladmin/AddProduct';
+import BulkUpload from './pages/malladmin/BulkUpload';
+import Inventory from './pages/malladmin/Inventory';
+import Offers from './pages/malladmin/Offers';
+
+// Store
+import { useAuthStore } from './store/authStore';
+import { useOfferStore } from './store/offerStore';
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user, isAuthenticated, isGuest } = useAuthStore();
+  
+  if (!isAuthenticated && !isGuest) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
 function App() {
-  const { cart } = useCart();
-  const itemCount = cart?.items?.reduce((sum, item) => sum + item.qty, 0) || 0;
+  const { getCartTotals } = useCartStore();
+  const { offers } = useOfferStore();
+  const { itemCount } = getCartTotals(offers);
 
   return (
-    <div className="min-h-screen relative bg-light">
+    <div className="min-h-screen relative bg-slate-50">
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={
-          <>
-            <header className="bg-primary text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
-              <h1 className="text-xl font-bold">SmartCart Scanner</h1>
-            </header>
-            <main className="container mx-auto p-4 pb-20">
-              <Home />
-            </main>
-            <div className="fixed bottom-6 right-6">
-              <a href="/cart" className="bg-secondary text-white p-4 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors relative z-50">
-                <ShoppingCart size={24} />
-                {itemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </a>
-            </div>
-          </>
-        } />
-        <Route path="/cart" element={
-          <>
-            <header className="bg-primary text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
-              <h1 className="text-xl font-bold">Your Cart</h1>
-              <a href="/" className="text-sm underline">Back to Scanner</a>
-            </header>
-            <main className="container mx-auto p-4 pb-20">
-              <Cart />
-            </main>
-          </>
-        } />
+        {/* Auth Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="products" element={<ProductList />} />
+        {/* Customer Routes with Layout */}
+        <Route element={<CustomerLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <CustomerDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/lists" 
+            element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <ShoppingLists />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/search" 
+            element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <Search />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/checkout" 
+            element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <Checkout />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/receipt/:orderId" 
+            element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <Receipt />
+              </ProtectedRoute>
+            } 
+          />
+        </Route>
+        
+        {/* Super Admin Routes */}
+        <Route path="/superadmin" element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <SuperAdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="malls" element={<MallsList />} />
+          <Route path="carts" element={<SmartCarts />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        {/* Mall Admin Routes */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['malladmin']}>
+            <MallAdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="dashboard" element={<MallAdminDashboard />} />
+          <Route path="products" element={<ProductsList />} />
           <Route path="products/new" element={<AddProduct />} />
           <Route path="products/bulk" element={<BulkUpload />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="offers" element={<Offers />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
         </Route>
+
+        {/* Catch old admin login route and redirect */}
+        <Route path="/admin/login" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
   );

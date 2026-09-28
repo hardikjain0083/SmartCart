@@ -1,98 +1,151 @@
-import React, { useState } from 'react';
-import { useCart } from '../context/CartContext';
-import axios from 'axios';
+import React from 'react';
+import { useCartStore } from '../store/cartStore';
+import { useOfferStore } from '../store/offerStore';
+import { Link, useNavigate } from 'react-router-dom';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Cart = () => {
-  const { cart, updateQty, clearCart } = useCart();
-  const [checkoutStatus, setCheckoutStatus] = useState(null);
+  const { items, updateQty, removeFromCart, clearCart, getCartTotals } = useCartStore();
+  const { offers } = useOfferStore();
+  const navigate = useNavigate();
+  const { itemCount, subtotal, totalSavings, totalGST, grandTotal } = getCartTotals(offers);
 
-  if (!cart || !cart.items || cart.items.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center mt-20 text-gray-500">
-        <div className="text-7xl mb-6">🛒</div>
-        <h2 className="text-2xl font-medium mb-2 text-dark">Your cart is empty</h2>
-        <p className="text-gray-400">Scan some items to add them to your cart.</p>
-        <a href="/" className="mt-8 bg-primary text-white px-8 py-3 rounded-xl shadow-md font-medium hover:bg-emerald-600 transition-colors">
+      <div className="max-w-md mx-auto mt-20 text-center space-y-6">
+        <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto">
+          <ShoppingBag className="w-12 h-12 text-indigo-300" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Your cart is empty</h2>
+          <p className="text-slate-500 mt-2">Looks like you haven't scanned any items yet.</p>
+        </div>
+        <Link 
+          to="/" 
+          className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl shadow-sm hover:bg-indigo-700 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Start Scanning
-        </a>
+        </Link>
       </div>
     );
   }
-
-  if (checkoutStatus === 'success') {
-    return (
-      <div className="flex flex-col items-center justify-center mt-20">
-        <div className="text-7xl mb-6">✅</div>
-        <h2 className="text-3xl font-bold mb-2 text-dark">Checkout Successful!</h2>
-        <p className="text-gray-500 text-lg">Thank you for shopping with SmartCart.</p>
-        <a href="/" className="mt-8 bg-primary text-white px-8 py-3 rounded-xl shadow-md font-medium hover:bg-emerald-600 transition-colors">
-          Start New Session
-        </a>
-      </div>
-    );
-  }
-
-  const handleCheckout = async () => {
-    try {
-      await axios.post(`/api/cart/${cart._id}/checkout`);
-      setCheckoutStatus('success');
-      clearCart();
-    } catch (err) {
-      alert('Checkout failed. Please try again.');
-    }
-  };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4">
-        <div className="flex justify-between items-center border-b pb-4 mb-4">
-          <h2 className="text-2xl font-bold text-dark">Cart Summary</h2>
-          <button onClick={clearCart} className="text-red-500 text-sm font-medium hover:underline">
-            🗑 Empty Cart
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {cart.items.map((item) => (
-            <div key={item._id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-dark truncate">{item.productName}</h3>
-                <p className="text-xs text-gray-400 font-mono mt-0.5">{item.barcode}</p>
-                <p className="text-primary font-semibold mt-1">${item.price.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center gap-2 ml-4">
-                <div className="flex items-center gap-0 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                  <button
-                    className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition-colors"
-                    onClick={() => updateQty(item._id, item.qty - 1)}
-                  >−</button>
-                  <span className="w-8 h-9 flex items-center justify-center font-bold text-dark">{item.qty}</span>
-                  <button
-                    className="w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition-colors"
-                    onClick={() => updateQty(item._id, item.qty + 1)}
-                  >+</button>
-                </div>
-                <div className="text-sm font-medium text-gray-500 w-16 text-right">
-                  ${(item.price * item.qty).toFixed(2)}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="max-w-3xl mx-auto pb-32">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-slate-800">Shopping Cart ({itemCount})</h2>
+        <button 
+          onClick={clearCart}
+          className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center"
+        >
+          <Trash2 className="w-4 h-4 mr-1.5" />
+          Empty Cart
+        </button>
       </div>
 
-      {/* Total & Checkout */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky bottom-4">
-        <div className="flex justify-between items-center mb-6">
-          <span className="text-gray-600 font-medium text-lg">Total Amount</span>
-          <span className="text-4xl font-extrabold text-primary">${cart.totalAmount.toFixed(2)}</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        {/* Cart Items */}
+        <div className="md:col-span-2 space-y-4">
+          {items.map((item) => {
+            const p = item.product;
+            const originalPrice = p.price;
+            const finalPrice = originalPrice * (1 - p.discount / 100);
+
+            return (
+              <div key={p.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex gap-4 relative animate-[fade-in_0.3s_ease-out]">
+                <div className="w-24 h-24 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover mix-blend-multiply" />
+                </div>
+                
+                <div className="flex-1 flex flex-col">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-slate-800 leading-tight pr-4">{p.name}</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">{p.unit} • GST {p.gst}%</p>
+                    </div>
+                    <button 
+                      onClick={() => removeFromCart(p.id)}
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-auto flex items-end justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg text-slate-800">₹{finalPrice.toFixed(2)}</span>
+                        {p.discount > 0 && (
+                          <span className="text-sm text-slate-400 line-through">₹{originalPrice.toFixed(2)}</span>
+                        )}
+                      </div>
+                      {p.discount > 0 && (
+                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Saved ₹{(originalPrice - finalPrice).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                      <button 
+                        onClick={() => updateQty(p.id, item.qty - 1)}
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 shadow-sm hover:text-indigo-600 transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-10 text-center font-bold text-slate-800">{item.qty}</span>
+                      <button 
+                        onClick={() => updateQty(p.id, item.qty + 1)}
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 shadow-sm hover:text-indigo-600 transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <button
-          onClick={handleCheckout}
-          className="w-full bg-secondary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 text-lg"
-        >
-          Proceed to Checkout →
-        </button>
+
+        {/* Running Bill Panel */}
+        <div className="md:col-span-1">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sticky top-24">
+            <h3 className="font-bold text-lg text-slate-800 mb-4">Order Summary</h3>
+            
+            <div className="space-y-3 text-sm text-slate-600 mb-6 pb-6 border-b border-slate-100">
+              <div className="flex justify-between">
+                <span>Subtotal ({itemCount} items)</span>
+                <span className="font-medium text-slate-800">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-emerald-600">
+                <span>Total Savings</span>
+                <span className="font-medium">- ₹{totalSavings.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>GST Estimated</span>
+                <span className="font-medium text-slate-800">₹{totalGST.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-end mb-8">
+              <span className="font-bold text-slate-800">Grand Total</span>
+              <div className="text-right">
+                <span className="text-3xl font-black text-indigo-600">₹{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => navigate('/checkout')} // Module 13/14 hook
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 flex items-center justify-center transition-all active:scale-95 text-lg"
+            >
+              Proceed to Pay
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
